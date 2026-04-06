@@ -1,9 +1,11 @@
 import pygame
+import sys
 from constants import *
-from logger import log_state
+from logger import log_state, log_event
 from player import Player
 from asteroidfield import AsteroidField
 from asteroid import Asteroid
+from shot import Shot
 
 def main():
     pygame.init()
@@ -15,18 +17,25 @@ def main():
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     x = SCREEN_WIDTH / 2
     y = SCREEN_HEIGHT / 2
+
+    # Groups
     updatable = pygame.sprite.Group()
     drawable = pygame.sprite.Group()
     asteroids = pygame.sprite.Group()
+    shots = pygame.sprite.Group()
+
+    # Containers
     Player.containers = (updatable, drawable)
     Asteroid.containers = (asteroids, updatable, drawable)
     AsteroidField.containers = updatable
+    Shot.containers = (shots, updatable, drawable)
+
     player = Player(x, y)
     asteroidfield = AsteroidField()
-    game_loop(screen, clock, dt, updatable, drawable, asteroids)
+    game_loop(screen, clock, dt, updatable, drawable, asteroids, player, shots)
 
 
-def game_loop(screen, clock, dt, updatable, drawable, asteroids):
+def game_loop(screen, clock, dt, updatable, drawable, asteroids, player, shots):
     while True:
         log_state()
         for event in pygame.event.get():
@@ -34,6 +43,22 @@ def game_loop(screen, clock, dt, updatable, drawable, asteroids):
                 return
         screen.fill("black")
         updatable.update(dt)
+        
+        # Check if player hits asteroid
+        for obj in asteroids:
+            if obj.collides_with(player) == True:
+                log_event("player_hit")
+                print("Game over!")
+                sys.exit()
+        
+        # Check if shot hits asteroid
+        for a in asteroids:
+            for s in shots:
+                if a.collides_with(s) == True:
+                    log_event("asteroid_shot")
+                    a.kill()
+                    s.kill()
+        
         for obj in drawable:
             obj.draw(screen)
         pygame.display.flip()
